@@ -2,46 +2,78 @@ package negocio;
 
 import modelo.Producto;
 
+import java.util.ArrayList;
+
 public class Inventario {
-    private Producto[] productos;
-    private int cantidadActual;
+    private ArrayList<Producto> listaProductos;
 
     public Inventario(int capacidadMaxima) {
-        if (capacidadMaxima > 0) {
-            this.productos = new Producto[capacidadMaxima];
-        } else {
-            this.productos = new Producto[50];
-        }
-        this.cantidadActual = 0;
+        this.listaProductos = new ArrayList<>();
     }
 
-    public boolean agregarProducto(Producto nuevo) {
-        if (nuevo == null || cantidadActual >= productos.length) {
+    public boolean agregarProducto(Producto p) {
+        if (p == null) {
             return false;
         }
-        if (buscarPorCodigo(nuevo.getCodigo()) != null) {
+        if (p.getNombre() == null || p.getNombre().trim().isEmpty()) {
             return false;
         }
-        productos[cantidadActual] = nuevo;
-        cantidadActual++;
+        if (p.getPrecio() <= 0) {
+            return false;
+        }
+        if (p.getStock() < 0) {
+            return false;
+        }
+        if (buscarPorCodigo(p.getCodigo()) != null) { // no permitir codigos repetidos
+            return false;
+        }
+        listaProductos.add(p);
         return true;
     }
 
     public Producto buscarPorCodigo(String codigo) {
-        for (int i = 0; i < cantidadActual; i++) {
-            if (productos[i].getCodigo().equalsIgnoreCase(codigo)) {
-                return productos[i];
+        for (int i = 0; i < listaProductos.size(); i++) {
+            if (listaProductos.get(i).getCodigo().equalsIgnoreCase(codigo)) {
+                return listaProductos.get(i);
             }
         }
         return null;
     }
 
-    public boolean actualizarStock(String codigo, int nuevoStock) {
+    public String listarProductos() {
+        if (listaProductos.isEmpty()) {
+            return "No hay productos registrados en el inventario.";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < listaProductos.size(); i++) {
+            sb.append(i + 1).append(". ").append(listaProductos.get(i).mostrarInformacion()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    public String listarAlertasStock() {
+        StringBuilder sb = new StringBuilder();
+        boolean hayAlertas = false;
+        for (int i = 0; i < listaProductos.size(); i++) {
+            Producto p = listaProductos.get(i);
+            if (p.getStock() < 3) {
+                sb.append("- ").append(p.verificarAlertaStock())
+                        .append(" (Codigo: ").append(p.getCodigo()).append(")\n");
+                hayAlertas = true;
+            }
+        }
+        if (!hayAlertas) {
+            return "No hay productos con stock bajo (menor a 3 unidades).";
+        }
+        return sb.toString();
+    }
+
+    public boolean actualizarStock(String codigo, int nuevaCantidad) {
         Producto encontrado = buscarPorCodigo(codigo);
-        if (encontrado == null || nuevoStock < 0) {
+        if (encontrado == null || nuevaCantidad < 0) {
             return false;
         }
-        encontrado.setStock(nuevoStock);
+        encontrado.setStock(nuevaCantidad);
         return true;
     }
 
@@ -54,30 +86,12 @@ public class Inventario {
         return true;
     }
 
-    public String listarProductos() {
-        if (cantidadActual == 0) {
-            return "No hay productos registrados en el inventario.";
+    public boolean eliminarProducto(String codigo) {
+        Producto encontrado = buscarPorCodigo(codigo);
+        if (encontrado == null) {
+            return false;
         }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cantidadActual; i++) {
-            sb.append(i + 1).append(". ").append(productos[i].mostrarInformacion()).append("\n");
-        }
-        return sb.toString();
-    }
-
-    public String listarAlertasStock() {
-        StringBuilder sb = new StringBuilder();
-        boolean hayAlertas = false;
-        for (int i = 0; i < cantidadActual; i++) {
-            if (productos[i].getStock() < 3) {
-                sb.append("- ").append(productos[i].verificarAlertaStock())
-                        .append(" (Codigo: ").append(productos[i].getCodigo()).append(")\n");
-                hayAlertas = true;
-            }
-        }
-        if (!hayAlertas) {
-            return "No hay productos con stock bajo (menor a 3 unidades).";
-        }
-        return sb.toString();
+        listaProductos.remove(encontrado);
+        return true;
     }
 }
